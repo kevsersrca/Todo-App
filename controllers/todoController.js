@@ -1,23 +1,36 @@
 var bodyParser = require('body-parser');
-
-var data = [];
+var mongoose = require('mongoose');
+mongoose.Promise = require('bluebird');
+//Connect database
+mongoose.connect("mongodb://test:test@ds121222.mlab.com:21222/todo");
+//Create Schema
+var todoSchema = new mongoose.Schema({
+  item:String
+});
+//create mode
+var Todo = mongoose.model('Todo',todoSchema);
 var urlencodedParser = bodyParser.urlencoded({extended: false});
-
+//routes
 module.exports = function(app){
-
+//Get method
 app.get('/todo',function(req,res){
-  res.render('todo',{ todos : data});
-});
-
-app.post('/todo',urlencodedParser,function(req,res){
-  data.push(req.body);
-  res.json(data);
-});
-
-app.delete('/todo/:item',function(req,res){
-  data = data.filter(function(todo){
-      return todo.item.replace(/ /g, '-') !== req.params.item;
+  Todo.find({},function(err,data){
+    if(err) throw err;
+    res.render('todo',{ todos : data});
   });
-  res.json(data);
+});
+//post method
+app.post('/todo',urlencodedParser,function(req,res){
+  var newTodo = Todo(req.body).save(function(err,data){
+    if(err) throw err;
+    res.json(data);
+  });
+});
+//delete method
+app.delete('/todo/:item',function(req,res){
+  Todo.find({item:req.params.item.replace(/\-/g, " ")}).remove(function(err,data){
+    if(err) throw err;
+    res.json(data);
+  });
 });
 };
